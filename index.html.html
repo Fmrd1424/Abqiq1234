@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>رصد التشوهات البصرية - بلدية محافظة بقيق</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/exifr/dist/lite.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080808;font-family:Tahoma,Arial,sans-serif;color:#24425f}
+.page{max-width:980px;margin:auto;background:#f7fbff;min-height:100vh}
+.header{padding:20px 24px;color:#fff;background:linear-gradient(135deg,#0758ad,#1676d2);display:flex;justify-content:space-between;align-items:center}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:58px;height:58px;border:2px solid #fff;border-radius:12px;display:grid;place-items:center;font-weight:900;font-size:25px;background:#ffffff1c}
+h1{font-size:22px;margin:0}.brand p{margin:3px 0 0;font-size:13px}.badge{padding:9px 12px;border:1px solid #ffffff55;border-radius:10px;background:#ffffff18;font-size:12px}
+.content{padding:15px}.card{background:#fff;border:1px solid #e0e8f1;border-radius:14px;padding:14px;margin-bottom:13px;box-shadow:0 3px 12px #1f4e7910}
+.photos{display:grid;grid-template-columns:1fr 1fr;gap:12px}.photo{aspect-ratio:1136/872;width:100%;height:auto;min-height:0;border:1.5px dashed #b8c9db;border-radius:11px;background:#f8fbff;position:relative;overflow:hidden;display:grid;place-items:center;cursor:pointer}
+.photo input{display:none}.photo img{width:100%;height:100%;object-fit:contain;display:none;background:#eef3f8}.photo.has img{display:block}.photo.has .placeholder{display:none}.label{position:absolute;top:8px;right:8px;z-index:3;background:#ffffffe8;color:#185d9c;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:bold}
+.placeholder{text-align:center;font-size:12px;color:#667f99}.pic{width:56px;height:43px;border:2px solid #7187a0;border-radius:7px;margin:auto auto 8px;position:relative;background:#fff}.pic:before{content:"";position:absolute;width:8px;height:8px;background:#7187a0;border-radius:50%;left:10px;top:7px}.pic:after{content:"";position:absolute;left:8px;bottom:5px;width:35px;height:18px;border-left:2px solid #7187a0;border-top:2px solid #7187a0;transform:skewY(-32deg)}.plus{position:absolute;right:-9px;top:-10px;width:27px;height:27px;border-radius:50%;background:#0769c8;color:#fff;border:2px solid #fff;font-size:21px;line-height:23px}
+.title{font-size:15px;font-weight:800;color:#075eb7;margin:0 0 11px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}.field label{display:block;font-size:11px;font-weight:bold;margin:0 0 5px;color:#315675}.field input,.field select{height:42px;width:100%;border:1px solid #d4e0ec;border-radius:8px;padding:0 10px;background:#fff;color:#294a66;outline:0;font-size:13px}
+.radio{display:flex;gap:8px}.radio label{height:42px;flex:1;border:1px solid #d4e0ec;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;cursor:pointer}.radio input{width:auto;height:auto;accent-color:#086bc8}.radio label.on{background:#edf7ff;border-color:#398bd0;color:#075fa8;font-weight:bold}
+.help{font-size:11px;color:#71869a;margin-top:5px;line-height:1.6}.status{display:none;margin-top:8px;padding:9px;border-radius:8px;font-size:12px}.status.show{display:block}.ok{background:#eaf8f2;color:#167154}.warn{background:#fff7e9;color:#96620b}.err{background:#fff0f1;color:#a32d35}
+#map{height:390px;border:1px solid #d7e2ed;border-radius:10px;overflow:hidden;background:#d9d9d9}.mapbar{display:flex;gap:8px;margin-top:8px}.small{height:40px;padding:0 12px;border:1px solid #ccdbe9;background:#fff;border-radius:8px;color:#27577c;cursor:pointer}
+.save{height:48px;width:100%;border:0;border-radius:8px;background:linear-gradient(90deg,#075bb9,#267bd7);color:#fff;font-size:16px;font-weight:800;cursor:pointer}.save:disabled{opacity:.55}
+.msg{display:none;margin-top:8px;padding:9px;border-radius:8px;text-align:center;font-size:12px}.msg.show{display:block}
+.table{overflow:auto;border:1px solid #dfe8f1;border-radius:9px}table{border-collapse:collapse;width:100%;min-width:980px}th,td{padding:8px 6px;border-bottom:1px solid #e8eef4;text-align:center;font-size:10px}th{background:#f3f7fb;color:#315a7d}td{color:#47627a}.thumb{width:62px;height:43px;object-fit:cover;border-radius:5px}.btn{width:28px;height:28px;border:1px solid #d8e3ed;background:#fff;border-radius:6px;cursor:pointer}.danger{color:#d43c45}.empty{padding:28px;color:#8595a4}
+@media(max-width:720px){.header{padding:16px}.badge{display:none}h1{font-size:17px}.brand p{font-size:11px}.logo{width:48px;height:48px;font-size:21px}.content{padding:9px}.grid4{grid-template-columns:1fr 1fr}.photo{aspect-ratio:1136/872}#map{height:320px}}
+@media(max-width:390px){.grid4,.grid2,.photos{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="header">
+  <div class="brand"><div class="logo">ب</div><div><h1>بلدية محافظة بقيق</h1><p>إدارة الشؤون الفنية</p></div></div>
+  <div class="badge">رصد التشوهات البصرية</div>
+</header>
+<main class="content">
+<section class="card">
+<div class="photos">
+<label class="photo" id="beforeBox"><span class="label">1. صورة قبل المعالجة</span><input id="beforeInput" type="file" accept="image/*"><div class="placeholder"><div class="pic"><span class="plus">+</span></div><b>اضغط هنا لاختيار صورة من الاستديو</b><div class="help">( JPG - PNG )</div></div><img id="beforePreview"></label>
+<label class="photo" id="afterBox"><span class="label">2. صورة بعد المعالجة</span><input id="afterInput" type="file" accept="image/*"><div class="placeholder"><div class="pic"><span class="plus">+</span></div><b>اضغط هنا لاختيار صورة من الاستديو</b><div class="help">( JPG - PNG )</div></div><img id="afterPreview"></label>
+</div>
+</section>
+<section class="card">
+<h2 class="title">⌂ معلومات الموقع</h2>
+<div class="grid4">
+<div class="field"><label>الحي</label><input id="district" placeholder="اكتب الحي"></div>
+<div class="field"><label>اسم الشارع</label><input id="street" placeholder="اكتب اسم الشارع"></div>
+<div class="field"><label>رقم القطعة</label><input id="plot" placeholder="اكتب رقم القطعة"></div>
+<div class="field"><label>رقم البلك</label><input id="block" placeholder="اكتب رقم البلك"></div>
+</div>
+<div class="grid2">
+<div class="field"><label>هل تم مخالفته؟</label><div class="radio"><label id="yesLabel"><input type="radio" name="violated" value="نعم"> نعم</label><label id="noLabel"><input type="radio" name="violated" value="لا"> لا</label></div></div>
+<div class="field"><label>نوع التشوه</label><select id="distortion"><option value="">اختر نوع التشوه</option><option>تشوه واجهات المباني</option><option>تشوه الدهانات</option><option>تشوه التمديدات</option><option>تشوه اللوحات</option><option>تشوه المكيفات</option><option>تشوه الأسوار</option><option>تشوه النوافذ والأبواب</option><option>تشوه الأرصفة والمداخل</option><option>أخرى</option></select></div>
+</div>
+<div class="grid2">
+<div class="field"><label>تاريخ البلاغ</label><input id="reportDate" type="date"></div>
+<div class="field"><label>الإحداثيات</label><input id="coords" placeholder="مثال: 25.931697648402665, 49.66189980086379" readonly><div class="help">يتم أولاً قراءة GPS من الصورة، ثم قراءة الإحداثية المكتوبة أسفل الصورة مثل 25.931697648402665N 49.66189980086379E.</div><button type="button" class="small" style="margin-top:6px;width:100%" onclick="retryCoordinate()">↻ إعادة قراءة الإحداثية من الصورة</button></div>
+</div>
+<div id="ocrStatus" class="status"></div><button class="small" id="retryOcr" style="display:none;margin-top:7px;width:100%" onclick="retryOCR()">↻ إعادة قراءة الإحداثية من الصورة</button>
+</section>
+<section class="card">
+<h2 class="title">▣ خريطة الموقع</h2>
+<div id="map"></div>
+<div class="mapbar"><button class="small" onclick="useLocation()">⌖ استخدام موقعي الحالي</button><button class="small" onclick="goCoords()">↗ الانتقال للإحداثيات</button></div>
+</section>
+<section class="card">
+<button class="save" id="saveBtn" onclick="saveReport()">▣ حفظ البلاغ</button>
+<div id="msg" class="msg"></div>
+</section>
+<section class="card">
+<h2 class="title">☷ البلاغات المحفوظة</h2>
+<div class="table"><table><thead><tr><th>م</th><th>تاريخ البلاغ</th><th>الحي</th><th>الشارع</th><th>رقم القطعة</th><th>رقم البلك</th><th>تم مخالفته؟</th><th>نوع التشوه</th><th>قبل</th><th>بعد</th><th>الموقع</th><th>إجراء</th></tr></thead><tbody id="reportsBody"><tr><td colspan="12" class="empty">جاري التحميل...</td></tr></tbody></table></div>
+</section>
+<div class="help" style="text-align:center;padding:4px 0 18px">نظام رصد التشوهات البصرية — بلدية محافظة بقيق</div>
+</main>
+</div>
+<script>
+const SUPABASE_URL="https://vvxxgogzjdpnskbgtmkm.supabase.co";
+const SUPABASE_KEY="sb_publishable_T3QFh0Q93QI17NaTB6bRgQ_4N8Eno4O";
+const TABLE="reports",BUCKET="reports";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let map,marker,lat=null,lng=null,ocrBusy=false;
+
+document.getElementById("reportDate").value=new Date().toISOString().slice(0,10);
+
+function initMap(){
+  map=L.map("map",{zoomControl:true}).setView([25.934458,49.623754],17);
+  const urls=[
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+  ];
+  let idx=0,layer=L.tileLayer(urls[idx],{maxZoom:20,attribution:"Tiles © Esri"}).addTo(map),failed=0;
+  layer.on("tileerror",function(){
+    failed++;
+    if(failed>=2 && idx<urls.length-1){
+      idx++;map.removeLayer(layer);
+      layer=L.tileLayer(urls[idx],{maxZoom:20,attribution:"Tiles © Esri"}).addTo(map);failed=0;
+    }
+  });
+  marker=L.marker([25.934458,49.623754],{draggable:true}).addTo(map);
+  marker.on("dragend",()=>{const p=marker.getLatLng();setCoords(p.lat,p.lng,false)});
+  setTimeout(()=>map.invalidateSize(),500);
+}
+initMap();
+
+function setStatus(t,c){
+  const e=document.getElementById("ocrStatus");
+  e.textContent=t;e.className="status show "+c;
+  const b=document.getElementById("retryOcr");
+  if(b)b.style.display=(c==="err"?"block":"none");
+}
+function retryOCR(){
+  const f=document.getElementById("beforeInput").files[0]||document.getElementById("afterInput").files[0];
+  if(f)ocrCoordinate(f);
+}
+function showMsg(t,c){const e=document.getElementById("msg");e.textContent=t;e.className="msg show "+c;clearTimeout(window.mt);window.mt=setTimeout(()=>e.className="msg",7000)}
+function setCoords(a,b,move=true){
+  a=Number(a);b=Number(b);
+  if(!Number.isFinite(a)||!Number.isFinite(b)||Math.abs(a)>90||Math.abs(b)>180)return false;
+  lat=a;lng=b;document.getElementById("coords").value=a.toFixed(15).replace(/0+$/,"").replace(/\.$/,"")+", "+b.toFixed(15).replace(/0+$/,"").replace(/\.$/,"");
+  marker.setLatLng([a,b]);if(move)map.setView([a,b],19);return true;
+}
+function normalizeOCR(s){
+  return String(s||"")
+    .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))
+    .replace(/[OoQ]/g,"0")
+    .replace(/[lI|]/g,"1")
+    .replace(/[،؛;]/g," ")
+    .replace(/\r/g," ")
+    .replace(/\n/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function validPair(a,b){
+  return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a)<=90&&Math.abs(b)<=180
+    && Math.abs(a)>=10 && Math.abs(b)>=20
+    && String(a).includes(".") && String(b).includes(".");
+}
+function parseCoordinateText(text){
+  const raw=normalizeOCR(text);
+
+  // الصيغة الأساسية: 25.931697648402665N 49.66189980086379E
+  const patterns=[
+    /(-?\d{1,2}\.\d{8,})\s*([NS])\s+(-?\d{2,3}\.\d{8,})\s*([EW])/i,
+    /(-?\d{1,2}\.\d{8,})\s*([NS])\s*[, ]+\s*(-?\d{2,3}\.\d{8,})\s*([EW])/i,
+    /(-?\d{1,2}\.\d{8,})\s*([NS])[^0-9]{1,8}(-?\d{2,3}\.\d{8,})\s*([EW])/i
+  ];
+  for(const re of patterns){
+    const m=raw.match(re);
+    if(m){
+      let a=parseFloat(m[1]),b=parseFloat(m[3]);
+      if(m[2].toUpperCase()==="S")a=-Math.abs(a);
+      if(m[4].toUpperCase()==="W")b=-Math.abs(b);
+      if(validPair(a,b)) return [a,b];
+    }
+  }
+
+  // بعض برامج OCR تفصل الحرف عن الرقم أو تضعه في سطر آخر.
+  const nums=raw.match(/-?\d{1,3}\.\d{8,}/g)||[];
+  for(let i=0;i<nums.length-1;i++){
+    const a=parseFloat(nums[i]),b=parseFloat(nums[i+1]);
+    if(validPair(a,b)) return [a,b];
+  }
+
+  // مهم: لا نستخدم أرقام قصيرة مثل 0.000000 أو 1.000000.
+  return null;
+}
+async function readGPS(file){
+  try{const g=await exifr.gps(file);if(g&&Number.isFinite(g.latitude)&&Number.isFinite(g.longitude)){setCoords(g.latitude,g.longitude,true);setStatus("✓ تم استخراج GPS من بيانات الصورة.","ok");return true}}catch(e){}
+  return false;
+}
+async function ocrCoordinate(file){
+  if(ocrBusy)return false;
+  ocrBusy=true;
+  setStatus("جاري قراءة الإحداثية المكتوبة أسفل الصورة...","warn");
+
+  try{
+    const img=new Image(),url=URL.createObjectURL(file);
+    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});
+
+    // نقرأ الجزء السفلي من الصورة فقط، لأن الإحداثية موجودة هناك.
+    const sw=img.naturalWidth, sh=img.naturalHeight;
+    const cropTop=Math.floor(sh*0.72);
+    const cropH=sh-cropTop;
+
+    // عدة محاولات OCR لأن الخط الأبيض فوق الصورة قد يكون صعباً.
+    const variants=[];
+    for(const scale of [2,3]){
+      const c=document.createElement("canvas"),ctx=c.getContext("2d");
+      c.width=Math.floor(sw*scale);
+      c.height=Math.floor(cropH*scale);
+      ctx.drawImage(img,0,cropTop,sw,cropH,0,0,c.width,c.height);
+
+      // أبيض/أسود عالي التباين
+      const d=ctx.getImageData(0,0,c.width,c.height);
+      for(let i=0;i<d.data.length;i+=4){
+        const y=d.data[i]*.299+d.data[i+1]*.587+d.data[i+2]*.114;
+        const v=y>125?255:0;
+        d.data[i]=d.data[i+1]=d.data[i+2]=v;
+      }
+      ctx.putImageData(d,0,0);
+      variants.push(c.toDataURL("image/png"));
+    }
+
+    let found=null;
+    let allText="";
+
+    for(let i=0;i<variants.length && !found;i++){
+      setStatus("جاري قراءة الإحداثية... محاولة "+(i+1)+" من "+variants.length,"warn");
+
+      const result=await Tesseract.recognize(
+        variants[i],
+        "eng",
+        {
+          logger:m=>{
+            if(m.status==="recognizing text"){
+              setStatus("جاري قراءة الإحداثية... "+Math.round((m.progress||0)*100)+"%","warn");
+            }
+          }
+        }
+      );
+
+      const text=result?.data?.text||"";
+      allText+=" "+text;
+
+      // نجرب النص الكامل أولاً
+      found=parseCoordinateText(text);
+      if(found)break;
+
+      // ثم نبحث مباشرة عن زوج أرقام عشري طويل حتى لو ضاعت N/E من OCR
+      const nums=text.replace(/,/g," ").match(/\d{1,3}\.\d{6,}/g)||[];
+      for(let j=0;j<nums.length-1;j++){
+        const a=parseFloat(nums[j]), b=parseFloat(nums[j+1]);
+        if(a>=0&&a<=90&&b>=0&&b<=180){
+          found=[a,b];break;
+        }
+      }
+    }
+
+    URL.revokeObjectURL(url);
+
+    // محاولة أخيرة من النص المجمع
+    if(!found) found=parseCoordinateText(allText);
+
+    if(found){
+      setCoords(found[0],found[1],true);
+      setStatus(
+        "✓ تم التعرف على الإحداثية الصحيحة: "+
+        found[0]+"N "+found[1]+"E",
+        "ok"
+      );
+      return true;
+    }
+
+    setStatus(
+      "لم يتم التعرف تلقائياً على الإحداثية. اضغطي «إعادة قراءة الإحداثية» مرة أخرى أو حددي الموقع من الخريطة.",
+      "err"
+    );
+    return false;
+  }catch(e){
+    console.error(e);
+    setStatus("تعذر قراءة الإحداثية من الصورة.","err");
+    return false;
+  }finally{
+    ocrBusy=false;
+  }
+}
+
+document.getElementById("beforeInput").addEventListener("change",e=>{if(e.target.files[0])handleImage(e.target.files[0],"beforeBox","beforePreview")});
+document.getElementById("afterInput").addEventListener("change",e=>{if(e.target.files[0])handleImage(e.target.files[0],"afterBox","afterPreview")});
+document.querySelectorAll('input[name="violated"]').forEach(x=>x.addEventListener("change",()=>{
+  document.getElementById("yesLabel").classList.remove("on");document.getElementById("noLabel").classList.remove("on");
+  if(x.value==="نعم"&&x.checked)document.getElementById("yesLabel").classList.add("on");
+  if(x.value==="لا"&&x.checked)document.getElementById("noLabel").classList.add("on");
+}));
+async function retryCoordinate(){
+  const f=document.getElementById("beforeInput").files[0]||document.getElementById("afterInput").files[0];
+  if(!f){showMsg("أرفقي صورة أولاً.","err");return}
+  lat=null;lng=null;document.getElementById("coords").value="";
+  const got=await readGPS(f);
+  if(!got) await ocrCoordinate(f);
+}
+function useLocation(){navigator.geolocation.getCurrentPosition(p=>{setCoords(p.coords.latitude,p.coords.longitude,true);setStatus("✓ تم استخدام موقع الجهاز.","ok")},()=>showMsg("تعذر الوصول إلى موقع الجهاز.","err"),{enableHighAccuracy:true,timeout:15000})}
+function goCoords(){if(lat===null||lng===null)return showMsg("لا توجد إحداثيات صحيحة.","err");map.setView([lat,lng],19);marker.setLatLng([lat,lng])}
+async function compress(file){return new Promise((resolve,reject)=>{const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{let w=im.naturalWidth,h=im.naturalHeight,s=Math.min(1,1800/Math.max(w,h));w*=s;h*=s;const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(im,0,0,w,h);c.toBlob(b=>{URL.revokeObjectURL(u);b?resolve(b):reject()},"image/jpeg",.82)};im.onerror=reject;im.src=u})}
+async function upload(file,name){const b=await compress(file),r=await db.storage.from(BUCKET).upload(name,b,{contentType:"image/jpeg",upsert:true});if(r.error)throw r.error;return db.storage.from(BUCKET).getPublicUrl(name).data.publicUrl}
+async function saveReport(){
+  const btn=document.getElementById("saveBtn");btn.disabled=true;
+  try{
+    if(lat===null||lng===null){showMsg("لم يتم تحديد إحداثيات صحيحة. أرفقي الصورة وانتظري القراءة أو حددي الموقع من الخريطة.","err");return}
+    const before=document.getElementById("beforeInput").files[0],after=document.getElementById("afterInput").files[0],violated=document.querySelector('input[name="violated"]:checked')?.value||"";
+    const r={id:crypto.randomUUID(),report_date:document.getElementById("reportDate").value,district:document.getElementById("district").value.trim(),street:document.getElementById("street").value.trim(),plot:document.getElementById("plot").value.trim(),block:document.getElementById("block").value.trim(),violated,distortion:document.getElementById("distortion").value,coordinates:lat+", "+lng,latitude:lat,longitude:lng,created_at:new Date().toISOString(),before_url:null,after_url:null};
+    if(!r.district||!r.street||!r.distortion||!violated||!before){showMsg("أكملي الحقول المطلوبة وأرفقي صورة قبل المعالجة.","err");return}
+    if(before)r.before_url=await upload(before,r.id+"_before.jpg");if(after)r.after_url=await upload(after,r.id+"_after.jpg");
+    const {error}=await db.from(TABLE).insert(r);if(error)throw error;
+    showMsg("✓ تم حفظ البلاغ في قاعدة البيانات وسيظهر على جميع الأجهزة.","ok");clearForm();await loadReports();
+  }catch(e){console.error(e);showMsg("لم يتم الحفظ السحابي. تأكدي من تنفيذ ملف إعداد Supabase المرفق. الخطأ: "+(e.message||"غير معروف"),"err")}
+  finally{btn.disabled=false}
+}
+function clearForm(){["beforeInput","afterInput"].forEach(x=>document.getElementById(x).value="");document.getElementById("beforeBox").classList.remove("has");document.getElementById("afterBox").classList.remove("has");document.getElementById("beforePreview").src="";document.getElementById("afterPreview").src="";["district","street","plot","block"].forEach(x=>document.getElementById(x).value="");document.getElementById("distortion").value="";document.querySelectorAll('input[name="violated"]').forEach(x=>x.checked=false);document.getElementById("yesLabel").classList.remove("on");document.getElementById("noLabel").classList.remove("on");lat=null;lng=null;document.getElementById("coords").value=""}
+async function loadReports(){
+  const body=document.getElementById("reportsBody");
+  try{
+    const {data,error}=await db.from(TABLE).select("*").order("created_at",{ascending:false});if(error)throw error;
+    if(!data?.length){body.innerHTML='<tr><td colspan="12" class="empty">لا توجد بلاغات محفوظة.</td></tr>';return}
+    body.innerHTML=data.map((r,i)=>`<tr><td>${i+1}</td><td>${esc((r.report_date||"").slice(0,10))}</td><td>${esc(r.district)}</td><td>${esc(r.street)}</td><td>${esc(r.plot)}</td><td>${esc(r.block)}</td><td>${esc(r.violated)}</td><td>${esc(r.distortion)}</td><td>${r.before_url?`<img class="thumb" src="${esc(r.before_url)}">`:"—"}</td><td>${r.after_url?`<img class="thumb" src="${esc(r.after_url)}">`:"—"}</td><td><button class="btn" onclick="openLocation(${Number(r.latitude)},${Number(r.longitude)})">⌖</button></td><td><button class="btn danger" onclick="del('${String(r.id).replaceAll("'","")}')">🗑</button></td></tr>`).join("");
+  }catch(e){console.error(e);body.innerHTML='<tr><td colspan="12" class="empty">تعذر تحميل البلاغات من قاعدة البيانات.</td></tr>'}
+}
+function openLocation(a,b){if(Number.isFinite(a)&&Number.isFinite(b)){setCoords(a,b,true);document.getElementById("map").scrollIntoView({behavior:"smooth",block:"center"})}}
+async function del(id){if(!confirm("هل تريد حذف البلاغ؟"))return;const {error}=await db.from(TABLE).delete().eq("id",id);if(error)showMsg("تعذر حذف البلاغ: "+error.message,"err");else loadReports()}
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
+loadReports();
+</script>
+</body>
+</html>
